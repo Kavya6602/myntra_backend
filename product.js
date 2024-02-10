@@ -28,8 +28,8 @@ const productId = async (req, res) => {
 
 const getAllProducts = async (req, res) => {
     try {
-        const { type,price, limit, offset } = req.query
-        // console.log(req)
+        const { type, minPrice, maxPrice, limit, offset, sort } = req.query;
+
         if (!limit && !offset) {
             throw new Error(`Both limit and offset must be provided.`);
         } else if (!limit) {
@@ -40,42 +40,47 @@ const getAllProducts = async (req, res) => {
 
         let filterData = [];
         let filter = [];
+
         if (type) {
             filterData.push('type = ?');
             filter.push(type);
-        };
+        }
 
-        // if (price) {
-        //     filterData.push('price = ?');
-        //     filter.push(price);
-        // // };
+        if (minPrice) {
+            filterData.push('price >= ?');
+            filter.push(minPrice);
+        }
 
-        // console.log(filterData);
-        // console.log(filter)
+        if (maxPrice) {
+            filterData.push('price <= ?');
+            filter.push(maxPrice);
+        }
 
         let filterString = '';
         if (filterData.length) {
-            filterString = `WHERE ${filterData.join(' and ')}`
+            filterString = `WHERE ${filterData.join(' and ')}`;
         }
 
-        console.log(filterString)
+        let sortString = '';
+        if (sort) {
+            const validSortOrders = ['asc', 'desc'];
+            const sortOrder = validSortOrders.includes(sort.toLowerCase()) ? sort.toUpperCase() : 'ASC';
+            sortString = `ORDER BY price ${sortOrder}`;
+        }
 
-        const getMethod = `SELECT name, description, image, rating, price, discount, is_active, type FROM products ${filterString} LIMIT ? OFFSET ?`;
+        const getMethod = `SELECT name, description, image, rating, price, discount, is_active, type FROM products ${filterString} ${sortString} LIMIT ? OFFSET ?`;
 
-        console.log(getMethod)
-        // Execute the query
         const [query] = await connection
             .promise()
             .execute(getMethod, [...filter, limit, offset]);
 
         res.status(200).send({ message: 'All products', result: query });
-        console.log(query)
+        console.log(query);
     } catch (e) {
-        console.error(e)
+        console.error(e);
         res.status(500).send({ message: 'Internal Server Error' });
-        // next(e);
     }
-}
+};
 
 
 router.get('/productid/:id', productId);

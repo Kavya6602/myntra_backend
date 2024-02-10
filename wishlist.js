@@ -38,13 +38,13 @@ const deleteWishlist = async (req, res) => {
         if (!id) {
             res.status(400).send('ID is required')
         }
-        const softDelete = `update wishlist SET is_active= 0 where wishlist_id = ?`;
+        const softDelete = `delete from wishlist where wishlist_id = ?`;
 
         const [result] = await connection
             .promise()
             .execute(softDelete, [id]);
 
-        res.status(200).send({ message: "Success" })
+        res.status(200).send({ message: "Deleted Successfully" })
     } catch (e) {
         console.error(e);
         res.status(500).send({ message: 'Internal server error' });
