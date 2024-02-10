@@ -9,9 +9,9 @@ const bodyParser = require('body-parser')
 const app = express()
 app.use(bodyParser.json());
 
-app.use('/v1/products', product)
-app.use('/v1/wishlists', wishlist);
-app.use('/v1/users',user)
+app.use('/', product)
+app.use('/', wishlist);
+app.use('/',user)
 
 
 app.listen(3001, () => { console.log('Server is running') })

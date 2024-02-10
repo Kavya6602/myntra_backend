@@ -81,23 +81,25 @@ const register = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
     try {
-        const otp = Math.floor(1000 + Math.random() * 9000);
+        const otp = () => Math.floor(1000 + Math.random() * 9000);
+        const otpCall = otp();
 
         const { email } = req.body;
 
         if (!email) {
             res.status(404).send({ message: 'Email field is required' })
         }
-        console.log(email)
+        // console.log(email)
         const emailQuery = `SELECT email FROM users WHERE email = ?`;
         let userExists = await connection.promise().execute(emailQuery, [email]);
-        console.log(userExists)
+        // console.log(userExists)
         if (!userExists[0].length) {
             res.status(404).send({ message: "No account found with this email" });
         }
 
-        const otpQuery = `update users set otp = ${otp} where email = ${email}`;
-        let userotp = await connection.promise().query(otpQuery, [email]);
+        const otpQuery = `update users set otp = ? where email = ?`;
+        let userotp = await connection.promise().query(otpQuery, [otpCall, email]);
+        console.log(userotp);
 
         res.status(200).send({ message: `A one time password has been sent to your email address ${email}` })
 
@@ -107,11 +109,48 @@ const forgotPassword = async (req, res) => {
     }
 }
 
+
+const resetPassword = async (req, res) => {
+    try {
+        const { email, otp, password } = req.body;
+
+        if (!email || !otp || !password) {
+            res.status(400).send({ message: "Please provide all the details" })
+        }
+
+        const otpCheck = `select otp from users where email = ?`;
+
+        const [result] = await connection
+            .promise()
+            .execute(otpCheck, [email]);
+
+        console.log(result)
+        if (result[0].otp !== otp) {
+            return res.status(401).json({ message: "Invalid OTP" });
+        }
+
+        const passwordUpdate = `update users set password= ?, otp = null where email = ?`;
+
+        const [value] = await connection
+            .promise()
+            .execute(passwordUpdate, [password, email]);
+
+            console.log(value);
+
+            res.status(200).send({message:"Password changed successfully",value:value})
+
+    } catch (e) {
+        console.log(e);
+        res.status(500).send({ message: e.message });
+    }
+}
+
 //User
 router.get('/user', getUser)
 //login
 router.post('/login', login)
 router.post('/register', register);
-router.put('/forgotpassword', forgotPassword)
+router.post('/forgotpassword', forgotPassword);
+router.post('/resetpassword', resetPassword);
 
 module.exports = router
