@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const connection = require('./db')
+const connection = require('./db');
+const bcrypt = require('bcrypt');
 
 const getUser = async (req, res) => {
     try {
@@ -28,6 +29,28 @@ const getUser = async (req, res) => {
     }
 }
 
+const register = async (req, res) => {
+    try {
+        const { name, is_active, email, password } = req.body;
+
+        if (!name || !is_active || !email || !password) {
+            res.status(400).json({ message: 'Name, Active status, Email and Password are all required' })
+        }
+
+        const hashedPassword = await bcrypt.hash(password,10)
+
+        const query = `insert into users (name,is_active,email,password) values (?, ?, ?, ?)`;
+        const [result] = await connection
+            .promise()
+            .execute(query, [name, is_active, email, hashedPassword]);
+
+        res.status(201).json({ message: 'User registered successfully', result: result })
+    } catch (e) {
+        console.log(e);
+        res.status(500).send({ message: e.message });
+    }
+}
+
 const login = async (req, res) => {
     try {
         // let { id } = req.params
@@ -42,37 +65,28 @@ const login = async (req, res) => {
             res.status(400).send({ message: "Password is required" })
         }
 
-        const query = `select email,password from users where email = ? and password = ?;`;
+        const query = `select email,password from users where email = ?;`;
 
         const [value] = await connection
             .promise()
-            .execute(query, [email, password])
-        //check pssword and email
+            .execute(query, [email])
+        console.log(value)
         if (value.length === 0) {
             throw new Error('User not found')
         }
 
-        res.status(200).send({ message: "Successful login", result: value })
-    } catch (e) {
-        console.log(e);
-        res.status(500).send({ message: e.message });
-    }
-}
+        const storedHashedPassword = value[0].password;
 
-const register = async (req, res) => {
-    try {
-        const { name, is_active, email, password } = req.body;
+        const match = await bcrypt.compare(password, storedHashedPassword);
+        console.log(password.length,storedHashedPassword.length)
 
-        if (!name || !is_active || !email || !password) {
-            res.status(400).json({ message: 'Name, Active status, Email and Password are all required' })
+        if (match) {
+            res.status(200).json({ message: "Successful login", userData });
+        } else {
+            res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        const query = `insert into users (name,is_active,email,password) values (?, ?, ?, ?)`;
-        const [result] = await connection
-            .promise()
-            .execute(query, [name, is_active, email, password]);
-
-        res.status(201).json({ message: 'User registered successfully', result: result })
+        // res.status(200).send({ message: "Successful login", result: value })
     } catch (e) {
         console.log(e);
         res.status(500).send({ message: e.message });
@@ -109,7 +123,6 @@ const forgotPassword = async (req, res) => {
     }
 }
 
-
 const resetPassword = async (req, res) => {
     try {
         const { email, otp, password } = req.body;
@@ -135,9 +148,9 @@ const resetPassword = async (req, res) => {
             .promise()
             .execute(passwordUpdate, [password, email]);
 
-            console.log(value);
+        console.log(value);
 
-            res.status(200).send({message:"Password changed successfully",value:value})
+        res.status(200).send({ message: "Password changed successfully", value: value })
 
     } catch (e) {
         console.log(e);
