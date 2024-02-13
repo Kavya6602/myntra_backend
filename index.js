@@ -3,11 +3,26 @@ const product = require('./product');
 const wishlist = require('./wishlist');
 const user = require('./user');
 const router = express.Router();
+const cors = require('cors')
 
 const bodyParser = require('body-parser')
 
 const app = express()
 app.use(bodyParser.json());
+
+
+const options = {
+    origin: "*",
+    methods: "GET,PUT,PATCH,POST,DELETE",
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  };
+  app.use(cors(options));
+  //application level middleware
+  app.use((req, res, next) => {
+    req.headers["request_id"] = uuid();
+    next();
+  });
 
 app.use('/', product)
 app.use('/', wishlist);

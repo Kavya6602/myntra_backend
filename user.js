@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const connection = require('./db');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken')
 
 const getUser = async (req, res) => {
     try {
@@ -31,7 +32,7 @@ const getUser = async (req, res) => {
 
 const register = async (req, res) => {
     try {
-        const { name, is_active, email, password } = req.body;
+        const { id,name, is_active, email, password } = req.body;
 
         if (!name || !is_active || !email || !password) {
             res.status(400).json({ message: 'Name, Active status, Email and Password are all required' })
@@ -39,10 +40,10 @@ const register = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password,10)
 
-        const query = `insert into users (name,is_active,email,password) values (?, ?, ?, ?)`;
+        const query = `insert into users (id,name,is_active,email,password) values (?, ?, ?, ?, ?)`;
         const [result] = await connection
             .promise()
-            .execute(query, [name, is_active, email, hashedPassword]);
+            .execute(query, [id,name, is_active, email, hashedPassword]);
 
         res.status(201).json({ message: 'User registered successfully', result: result })
     } catch (e) {
@@ -65,12 +66,13 @@ const login = async (req, res) => {
             res.status(400).send({ message: "Password is required" })
         }
 
-        const query = `select email,password from users where email = ?;`;
+        const query = `select id,email,password from users where email = ?;`;
 
         const [value] = await connection
             .promise()
             .execute(query, [email])
         console.log(value)
+
         if (value.length === 0) {
             throw new Error('User not found')
         }
@@ -81,7 +83,8 @@ const login = async (req, res) => {
         console.log(password.length,storedHashedPassword.length)
 
         if (match) {
-            res.status(200).json({ message: "Successful login", userData });
+            res.status(200).json({ message: "Successful login",
+            user_id : value[0].id });
         } else {
             res.status(401).json({ message: 'Invalid email or password' });
         }
