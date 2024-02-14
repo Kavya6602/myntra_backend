@@ -2,19 +2,24 @@ const express = require('express');
 const router = express.Router();
 const connection = require('./db');
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv').config();
+const { logRequest,validateQueryParams} = require('./middleware')
+// const crypto = require('crypto');
+
+// function secret(){
+
+//     const secretKey = crypto.randomBytes(32).toString('hex');
+//     console.log(secretKey)
+// }
+
+// secret();
+
+const secretKey = process.env.JWT_SECRET_KEY
 
 const getUser = async (req, res) => {
     try {
         const { limit, offset } = req.query;
-
-        if (!limit && !offset) {
-            throw new Error(`Both limit and offset must be provided.`);
-        } else if (!limit) {
-            throw new Error(`Limit must be provided.`);
-        } else if (!offset) {
-            throw new Error(`Offset must be provided.`);
-        }
 
         const query = `select name,is_active,email,password from users limit ? offset ?`;
 
@@ -32,18 +37,18 @@ const getUser = async (req, res) => {
 
 const register = async (req, res) => {
     try {
-        const { id,name, is_active, email, password } = req.body;
+        const { name, is_active, email, password } = req.body;
 
         if (!name || !is_active || !email || !password) {
             res.status(400).json({ message: 'Name, Active status, Email and Password are all required' })
         }
 
-        const hashedPassword = await bcrypt.hash(password,10)
+        const hashedPassword = await bcrypt.hash(password, 10)
 
-        const query = `insert into users (id,name,is_active,email,password) values (?, ?, ?, ?, ?)`;
+        const query = `insert into users (name,is_active,email,password) values ( ?, ?, ?, ?)`;
         const [result] = await connection
             .promise()
-            .execute(query, [id,name, is_active, email, hashedPassword]);
+            .execute(query, [name, is_active, email, hashedPassword]);
 
         res.status(201).json({ message: 'User registered successfully', result: result })
     } catch (e) {
@@ -66,7 +71,7 @@ const login = async (req, res) => {
             res.status(400).send({ message: "Password is required" })
         }
 
-        const query = `select id,email,password from users where email = ?;`;
+        const query = `select user_id,email,password from users where email = ?;`;
 
         const [value] = await connection
             .promise()
@@ -80,11 +85,21 @@ const login = async (req, res) => {
         const storedHashedPassword = value[0].password;
 
         const match = await bcrypt.compare(password, storedHashedPassword);
-        console.log(password.length,storedHashedPassword.length)
+        console.log(password.length, storedHashedPassword.length)
 
         if (match) {
-            res.status(200).json({ message: "Successful login",
-            user_id : value[0].id });
+            const token = jwt.sign({ user_id: value[0].user_id }, secretKey, { expiresIn: '1h' });
+
+            const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
+
+            // Log the decoded token to the console
+            console.log("Decoded Token:", decodedToken);
+            
+            res.status(200).json({
+                message: "Successful login",
+                user_id: value[0].user_id,
+                token:token
+            });
         } else {
             res.status(401).json({ message: 'Invalid email or password' });
         }
@@ -162,11 +177,11 @@ const resetPassword = async (req, res) => {
 }
 
 //User
-router.get('/user', getUser)
+router.get('/user', logRequest,validateQueryParams,getUser)
 //login
-router.post('/login', login)
-router.post('/register', register);
-router.post('/forgotpassword', forgotPassword);
-router.post('/resetpassword', resetPassword);
+router.post('/login',logRequest, login)
+router.post('/register',logRequest, register);
+router.post('/forgotpassword', logRequest,forgotPassword);
+router.post('/resetpassword',logRequest, resetPassword);
 
 module.exports = router
