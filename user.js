@@ -4,7 +4,7 @@ const connection = require('./db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv').config();
-const { logRequest,validateQueryParams} = require('./middleware')
+const { addRequestId, logRequest,validateQueryParams} = require('./middleware')
 // const crypto = require('crypto');
 
 // function secret(){
@@ -175,11 +175,11 @@ const resetPassword = async (req, res) => {
         res.status(500).send({ message: e.message });
     }
 }
-
+// console.log(addRequestId)
 //User
 router.get('/user', logRequest,validateQueryParams,getUser)
 //login
-router.post('/login',logRequest, login)
+router.post('/login',addRequestId,logRequest, login)
 router.post('/register',logRequest, register);
 router.post('/forgotpassword', logRequest,forgotPassword);
 router.post('/resetpassword',logRequest, resetPassword);

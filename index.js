@@ -3,12 +3,12 @@ const product = require('./product');
 const wishlist = require('./wishlist');
 const user = require('./user');
 const router = express.Router();
-const cors = require('cors')
-
+const { addRequestId } = require('./middleware')
 const bodyParser = require('body-parser')
 
 const app = express()
 app.use(bodyParser.json());
+app.use(addRequestId)
 
 
 // const options = {

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const connection = require('./db')
+const connection = require('./db');
+const { addRequestId, logRequest,validateQueryParams} = require('./middleware')
 
 const productId = async (req, res) => {
     try {
@@ -83,7 +84,7 @@ const getAllProducts = async (req, res) => {
 };
 
 
-router.get('/productid/:id', productId);
-router.get("/product", getAllProducts);
+router.get('/productid/:id',logRequest, productId);
+router.get("/product",logRequest, getAllProducts);
 
 module.exports = router;

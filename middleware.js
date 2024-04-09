@@ -1,4 +1,14 @@
 const express = require('express');
+const uuid = require('uuid')
+
+const generateUUID = () => {
+  return uuid.v4();
+};
+
+const addRequestId = (req, res, next) => {
+  req.headers["request_id"] = generateUUID();
+  next();
+};
 
 const logRequest = (req,res,next) => {
     console.log(`[${new Date().toISOString()}]  Method: ${req.method}, URL: ${req.url}`);
@@ -13,4 +23,4 @@ const validateQueryParams = (req,res,next) => {
     next();
 }
 
-module.exports = {logRequest,validateQueryParams}
+module.exports = { addRequestId, logRequest,validateQueryParams}

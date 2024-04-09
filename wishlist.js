@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const connection = require('./db')
+const connection = require('./db');
+const { addRequestId, logRequest,validateQueryParams} = require('./middleware')
 
 const getAllWishlist = async (req, res) => {
     try {
@@ -104,9 +105,9 @@ const updateWishlist = async (req, res) => {
 
 }
 
-router.get('/wishlist', getAllWishlist);
-router.delete('/wishlist/:id', deleteWishlist);
-router.post('/wishlist', addWishlist)
-router.put('/wishlist/:id', updateWishlist)
+router.get('/wishlist',logRequest, getAllWishlist);
+router.delete('/wishlist/:id',logRequest, deleteWishlist);
+router.post('/wishlist',logRequest, addWishlist)
+router.put('/wishlist/:id',logRequest, updateWishlist)
 
 module.exports = router;
